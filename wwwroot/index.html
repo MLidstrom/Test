@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test App - Form Submission</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .message {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .message.success {
+            display: block;
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            display: block;
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .submissions {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid #eee;
+        }
+
+        .submissions h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .submission-item {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border-left: 3px solid #667eea;
+        }
+
+        .submission-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .submission-email {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .submission-message {
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .submission-date {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+            padding: 20px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #666;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test App</h1>
+        <p class="subtitle">Submit your information below</p>
+
+        <form id="submissionForm">
+            <div class="form-group">
+                <label for="name">Name *</label>
+                <input 
+                    type="text" 
+                    id="name" 
+                    name="name" 
+                    placeholder="John Doe"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email *</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    placeholder="john@example.com"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="message">Message</label>
+                <textarea 
+                    id="message" 
+                    name="message" 
+                    placeholder="Tell us something..."
+                ></textarea>
+            </div>
+
+            <button type="submit" id="submitBtn">Submit</button>
+            <div class="loading" id="loading">Submitting...</div>
+            <div class="message" id="message"></div>
+        </form>
+
+        <div class="submissions" id="submissionsContainer" style="display: none;">
+            <h2>Recent Submissions</h2>
+            <div id="submissionsList"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5298/api';
+
+        // Check API health
+        async function checkHealth() {
+            try {
+                const response = await fetch(`${API_URL}/health`);
+                return response.ok;
+            } catch (error) {
+                console.error('API health check failed:', error);
+                return false;
+            }
+        }
+
+        // Load submissions
+        async function loadSubmissions() {
+            try {
+                const response = await fetch(`${API_URL}/submissions`);
+                if (!response.ok) throw new Error('Failed to load submissions');
+
+                const submissions = await response.json();
+                const container = document.getElementById('submissionsContainer');
+                const list = document.getElementById('submissionsList');
+
+                if (submissions.length === 0) {
+                    list.innerHTML = '<div class="empty-state">No submissions yet</div>';
+                } else {
+                    list.innerHTML = submissions.map(s => `
+                        <div class="submission-item">
+                            <div class="submission-name">${escapeHtml(s.name)}</div>
+                            <div class="submission-email">${escapeHtml(s.email)}</div>
+                            ${s.message ? `<div class="submission-message">${escapeHtml(s.message)}</div>` : ''}
+                            <div class="submission-date">${new Date(s.createdAt).toLocaleString()}</div>
+                        </div>
+                    `).join('');
+                }
+
+                container.style.display = 'block';
+            } catch (error) {
+                console.error('Error loading submissions:', error);
+            }
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Handle form submission
+        document.getElementById('submissionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            const messageEl = document.getElementById('message');
+
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const message = document.getElementById('message').value;
+
+            // Clear previous messages
+            messageEl.className = 'message';
+            loading.style.display = 'none';
+
+            // Disable button
+            submitBtn.disabled = true;
+            loading.style.display = 'block';
+
+            try {
+                const response = await fetch(`${API_URL}/submissions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, email, message })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Submission failed');
+                }
+
+                // Success
+                messageEl.textContent = '✓ Submission successful!';
+                messageEl.classList.add('success');
+                document.getElementById('submissionForm').reset();
+
+                // Reload submissions
+                await loadSubmissions();
+
+                // Clear message after 3 seconds
+                setTimeout(() => {
+                    messageEl.className = 'message';
+                }, 3000);
+            } catch (error) {
+                messageEl.textContent = `✗ ${error.message}`;
+                messageEl.classList.add('error');
+            } finally {
+                submitBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+
+        // Initialize on page load
+        window.addEventListener('load', async () => {
+            const isHealthy = await checkHealth();
+            if (!isHealthy) {
+                document.getElementById('message').textContent = '✗ API is not available. Make sure the backend is running.';
+                document.getElementById('message').classList.add('error');
+                document.getElementById('submitBtn').disabled = true;
+            } else {
+                await loadSubmissions();
+            }
+        });
+    </script>
+</body>
+</html>

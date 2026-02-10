@@ -1,0 +1,33 @@
+# .NET
+bin/
+obj/
+*.dll
+*.exe
+*.so
+*.dylib
+*.db
+*.db-shm
+*.db-wal
+
+# IDE
+.vscode/
+.vs/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build
+dist/
+build/
+
+# Logs
+*.log
